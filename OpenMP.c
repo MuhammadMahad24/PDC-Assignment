@@ -14,4 +14,14 @@ void arraySumParallel(int arr[N],long long *sum)
         *sum+=arr[i];
     }
 }
-
+int main()
+{
+    static int arr[N];
+    long long sum;
+    
+    for(int i=0;i<N;i++)
+    {
+        arr[i]=rand() % 10;
+    }
+    
+}
