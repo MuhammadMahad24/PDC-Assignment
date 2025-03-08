@@ -7,12 +7,13 @@
 
 void arraySumParallel(int arr[N],long long *sum)
 {
-    *sum=0;
-    #pragma omp parallel for reduction(+:*sum)
+    long long local_sum=0;
+    #pragma omp parallel for reduction(+:local_sum)
     for(int i=0;i<N;i++)
     {
-        *sum+=arr[i];
+        local_sum+=arr[i];
     }
+    *sum = local_sum;  // Store the result back in the pointer
 }
 int main()
 {
@@ -31,7 +32,7 @@ int main()
 
     double time_taken=(end - start) * 1000;
     printf("Parallel Sum: %lld\n",sum);
-    print("Parallel Execution Time: %.2f ms\n", time_taken);
+    printf("Parallel Execution Time: %.2f ms\n", time_taken);
 
     return 0;
 }
