@@ -3,7 +3,7 @@
 #include <time.h>
 #include <omp.h>
 
-#define N 5  // Matrix size
+#define N 1000  // Matrix size
 #define NUM_THREADS 4  // Number of OpenMP threads
 #define CHUNK_SIZE 2  // Chunk size for scheduling
 #define NUM_RUNS 10  // Number of executions for averaging
@@ -29,24 +29,24 @@ void matrixAdditionParallel(int A[N][N], int B[N][N], long long C[N][N], int sch
     }
 }
 
-void printMatrixInt(int M[N][N]) {
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
-            printf("%d ", M[i][j]);
-        }
-        printf("\n");
-    }
-}
+// void printMatrixInt(int M[N][N]) {
+//     for (int i = 0; i < N; i++) {
+//         for (int j = 0; j < N; j++) {
+//             printf("%d ", M[i][j]);
+//         }
+//         printf("\n");
+//     }
+// }
 
-void printMatrixLongLong(long long M[N][N]) {
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
-            printf("%lld ", M[i][j]);
-        }
-        printf("\n");
-    }
+// void printMatrixLongLong(long long M[N][N]) {
+//     for (int i = 0; i < N; i++) {
+//         for (int j = 0; j < N; j++) {
+//             printf("%lld ", M[i][j]);
+//         }
+//         printf("\n");
+//     }
     
-}
+// }
 int main() {
     static int A[N][N], B[N][N];
     static long long C[N][N];  // Result matrix
@@ -62,11 +62,11 @@ int main() {
             B[i][j] = rand() % 10;
         }
     }
-     // Print Matrices
-     printf("Matrix A:\n");
-     printMatrixInt(A);
-     printf("\nMatrix B:\n");
-     printMatrixInt(B);
+    //  // Print Matrices
+    //  printf("Matrix A:\n");
+    //  printMatrixInt(A);
+    //  printf("\nMatrix B:\n");
+    //  printMatrixInt(B);
 
     double total_time = 0;
 
