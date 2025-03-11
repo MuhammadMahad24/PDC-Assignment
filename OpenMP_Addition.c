@@ -8,15 +8,23 @@
 #define CHUNK_SIZE 2  // Chunk size for scheduling
 #define NUM_RUNS 10  // Number of executions for averaging
 
-void matrixAdditionParallel(int A[N][N], int B[N][N], long long C[N][N]) {
+void matrixAdditionParallel(int A[N][N], int B[N][N], long long C[N][N], int schedule_type) {
     int i, j;
 
-    #pragma omp parallel for private(i, j) shared(A, B, C) num_threads(NUM_THREADS) schedule(dynamic, CHUNK_SIZE)
-    for (i = 0; i < N; i++) {
-        for (j = 0; j < N; j++) {
-            // Using atomic to ensure each thread safely updates C[i][j]
-            #pragma omp atomic write
-            C[i][j] = (long long) A[i][j] + B[i][j];
+    // Choose scheduling type dynamically
+    if (schedule_type == 0) {
+        #pragma omp parallel for private(i, j) shared(A, B, C) num_threads(NUM_THREADS) schedule(static, CHUNK_SIZE)
+        for (i = 0; i < N; i++) {
+            for (j = 0; j < N; j++) {
+                C[i][j] = (long long) A[i][j] + B[i][j];
+            }
+        }
+    } else {
+        #pragma omp parallel for private(i, j) shared(A, B, C) num_threads(NUM_THREADS) schedule(dynamic, CHUNK_SIZE)
+        for (i = 0; i < N; i++) {
+            for (j = 0; j < N; j++) {
+                C[i][j] = (long long) A[i][j] + B[i][j];
+            }
         }
     }
 }
@@ -37,12 +45,13 @@ void printMatrixLongLong(long long M[N][N]) {
         }
         printf("\n");
     }
+    
 }
 int main() {
     static int A[N][N], B[N][N];
     static long long C[N][N];  // Result matrix
-    long long sum = 0;  // Sum of matrix elements
-    double execution_times[NUM_RUNS];  // Store execution times
+    double serial_times[NUM_RUNS], static_times[NUM_RUNS], dynamic_times[NUM_RUNS];
+    double total_serial = 0, total_static = 0, total_dynamic = 0;
 
     srand(time(NULL));
     
@@ -53,60 +62,60 @@ int main() {
             B[i][j] = rand() % 10;
         }
     }
-
-    // Print Matrices using a Critical Section to avoid race conditions
-    #pragma omp parallel num_threads(NUM_THREADS)
-    {
-        #pragma omp critical
-        {
-            if (omp_get_thread_num() == 0) {  // Print once
-                printf("Matrix A:\n");
-                printMatrixInt(A);
-                printf("\nMatrix B:\n");
-                printMatrixInt(B);
-            }
-        }
-    }
+     // Print Matrices
+     printf("Matrix A:\n");
+     printMatrixInt(A);
+     printf("\nMatrix B:\n");
+     printMatrixInt(B);
 
     double total_time = 0;
 
-    // Run 10 times and record execution times
+   
+    // Run 10 times for each method
     for (int run = 0; run < NUM_RUNS; run++) {
+        // Serial Execution
         double start = omp_get_wtime();
-        matrixAdditionParallel(A, B, C);
-        double end = omp_get_wtime();
-
-        execution_times[run] = (end - start) * 1000;  // Convert to ms
-        total_time += execution_times[run];
-    }
-
-    // Compute sum using Reduction
-    #pragma omp parallel for reduction(+:sum) num_threads(NUM_THREADS) schedule(dynamic, CHUNK_SIZE)
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
-            sum += C[i][j];
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                C[i][j] = A[i][j] + B[i][j];
+            }
         }
+        double end = omp_get_wtime();
+        serial_times[run] = (end - start);
+        total_serial += serial_times[run];
+
+        // Parallel Execution (Static Scheduling)
+        start = omp_get_wtime();
+        matrixAdditionParallel(A, B, C, 0);
+        end = omp_get_wtime();
+        static_times[run] = (end - start);
+        total_static += static_times[run];
+
+        // Parallel Execution (Dynamic Scheduling)
+        start = omp_get_wtime();
+        matrixAdditionParallel(A, B, C, 1);
+        end = omp_get_wtime();
+        dynamic_times[run] = (end - start);
+        total_dynamic += dynamic_times[run];
     }
 
-    // Print Resultant Matrix C
-    printf("\nResultant Matrix C (Sum):\n");
-    printMatrixLongLong(C);
-    
-    // Print sum using Critical Section
-    #pragma omp critical
-    {
-        printf("\nTotal sum of elements in C (Reduction result): %lld\n", sum);
-    }
-
-    // Print execution times
-    printf("\nExecution Times for %d Runs (ms):\n", NUM_RUNS);
+    // Print Results
+    printf("\nExecution Time Comparison:\n");
+    printf("-------------------------------------------------------------\n");
+    printf("| Run # | Serial Time (s) | Static Scheduling (s) | Dynamic Scheduling (s) |\n");
+    printf("-------------------------------------------------------------\n");
     for (int i = 0; i < NUM_RUNS; i++) {
-        printf("Run %d: %.2f ms\n", i + 1, execution_times[i]);
+        printf("| %4d  |   %.6f   |   %.6f   |   %.6f   |\n", 
+               i + 1, serial_times[i], static_times[i], dynamic_times[i]);
     }
-    
-    // Compute and print average execution time
-    double avg_time = total_time / NUM_RUNS;
-    printf("\nAverage Execution Time: %.2f ms\n", avg_time);
+    printf("-------------------------------------------------------------\n");
 
-    return 0;
+    // Print Average Execution Times
+    printf("\nAverage Execution Times:\n");
+    printf("Serial Execution: %.6f sec\n", total_serial / NUM_RUNS);
+    printf("Parallel (Static Scheduling): %.6f sec\n", total_static / NUM_RUNS);
+    printf("Parallel (Dynamic Scheduling): %.6f sec\n", total_dynamic / NUM_RUNS);
+
+    
 }
+
